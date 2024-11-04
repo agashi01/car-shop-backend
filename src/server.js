@@ -56,5 +56,5 @@ const authenticate = (req, res, next) => {
 
 makeApp(express, app, multer, cloudinary, db, authenticate)
 
-
-app.listen(3000, () => console.log("Server is running on port 3000"));
+const PORT =3000
+app.listen(process.env.PORT||PORT, () => console.log("Server is running on port 3000"));

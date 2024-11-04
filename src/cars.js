@@ -1,10 +1,11 @@
-// optimizo fuksionin "func"
+const stream = require('stream')
 
 const create = (db, cloudinary) => async (req, res) => {
   const { make, model, mileage, color, transmission, fuelType, vehicleType, dealer_id } = req.body;
   //   cloudinary.api.resources({ type: 'upload', resource_type: 'image', max_results: 500 },
   //   (error, result) => {
-  //     if (!error) {
+  //     if (!error) {y
+
   //       const publicIds = result.resources.map((resource) => resource.public_id);
   //       if (publicIds.length > 0) {
   //         cloudinary.api.delete_resources(publicIds, (delErr, delResult) => {
@@ -35,21 +36,57 @@ const create = (db, cloudinary) => async (req, res) => {
     }
     return false;
   };
+
   let urls = [];
-  let images = [];
+  let images=[];
   if (req.files.length > 15) return res.status(400).json("To many images, the limit is 15");
   try {
-    for (let x = 0; x < req.files.length; x++) {
-      images[x] = await cloudinary.uploader.upload(req.files[x].path);
-      urls[x] = images[x].secure_url;
-    }
+    const promises = req.files.map(file => {
+      return new Promise((reject, resolve) => {
+        const uploadCloudinary = cloudinary.uploader.upload_stream({
+          resource_type: 'image'
+        }, (error, result) => {
+          if (result) {
+            console.log('resolve')
+            images.push(result)
+            urls.push(result.secure_url)
+            resolve(result)
+          } else {
+            console.log('reject')
+            if (error.errMessage === "Invalid resource type") {
+              reject({
+                message: "Invalid resource type",
+                statusCode: 400,
+                error: "Invalid parameters"
+              })
+
+            }
+          }
+        })
+        const bufferStream= new stream.PassThrough();
+        bufferStream.end(file.buffer);
+        bufferStream.pipe(uploadCloudinary);
+      })
+    })
+
+    await Promise.all(promises)
+
+
+    // images[x] = await cloudinary.uploader.upload(req.files[x].path).secure_url;
+   
+
   } catch (err) {
-    console.log(err);
     for (let x = 0; x < images.length; x++) {
       cloudinary.uploader.destroy(images[x].public_id);
     }
     console.log(err, "cloudinary");
-    return res.json(err);
+    if(err.message==="Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images."){
+      return res.status(400).json('Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images.');
+
+    }else{
+      return res.status(400).json(err);
+    }
+    
   }
   let errMessage = "";
   let status = null;
@@ -82,7 +119,6 @@ const create = (db, cloudinary) => async (req, res) => {
         );
         if (responseInterior.ok) {
           const resultInterior = await responseInterior.json();
-          console.log(resultInterior);
           let count = 0;
           for (let key of resultInterior) {
             const isItInterior = interiorCheck(key);
@@ -92,7 +128,6 @@ const create = (db, cloudinary) => async (req, res) => {
             continue;
           }
 
-          console.log("interior", resultInterior);
         } else {
           for (let y = 0; y <= x; y++) {
             await cloudinary.uploader.destroy(images[y].public_id);
@@ -164,7 +199,6 @@ const create = (db, cloudinary) => async (req, res) => {
         // Commit the transaction
         await trx.commit();
       } catch (err) {
-        console.log(err);
         await trx.rollback();
         console.error(err);
         res.status(400).json("This car is missing something");
@@ -174,7 +208,6 @@ const create = (db, cloudinary) => async (req, res) => {
       }
     });
   } catch (err) {
-    console.log(err);
     await trx.rollback();
     console.error(err);
     res.status(500).json(err);
@@ -302,7 +335,6 @@ const model = (db) => async (req, res) => {
     }
   } catch (err) {
     console.log(err);
-    console.log(err);
     return res.status(400).json(err);
   }
 };
@@ -325,68 +357,65 @@ const func = async (
       .join("users", "cars.dealer_id", "users.id")
       .whereIn("make", vehicle || [])
       .whereIn("model", model || []);
-    console.log(carsState);
-    const values = Object.values(carsState);
-    const all = values.every((value) => value === false);
-    const none = values.every((value) => value === true);
-    let isit = false;
-    // console.log(carsState)
-    if (!all) {
-      if (!none) {
-        // console.log(carsState);
-        if (carsState.selling === "true") {
-          query.whereRaw("cars.dealer_id=?", [id]);
-          isit = true;
-        }
-        if (carsState.sold === "true") {
-          console.log("hi");
-          if (isit) {
-            query.orWhere(function () {
-              this.whereRaw("cars.dealer_id=? and cars.owner_id is not null", [id]);
-            });
-          } else {
-            query.whereRaw("cars.dealer_id=? and cars.owner_id is not null", [id]);
-            isit=true
-          }
-        }
-        if (carsState.owned === "true") {
-          if (isit) {
-            query.orWhere(function () {
-              this.whereRaw("cars.owner_id =?", [id]);
-            });
-          } else {
-            query.whereRaw("cars.owner_id =?", [id]);
+    if(carsState){
+      const values = Object.values(carsState);
+      const all = values.every((value) => value === false);
+      const none = values.every((value) => value === true);
+      let isit = false;
+      if (!all) {
+        if (!none) {
+          if (carsState.selling === "true") {
+            query.whereRaw("cars.dealer_id=?", [id]);
             isit = true;
           }
-        }
-        if (carsState.inStock === "true") {
-          if (isit) {
-            query.orWhere(function () {
-              this.whereRaw("cars.owner_id is null");
-            });
-          } else {
-            query.whereRaw("cars.owner_id is null");
-            isit = true;
+          if (carsState.sold === "true") {
+            if (isit) {
+              query.orWhere(function () {
+                this.whereRaw("cars.dealer_id=? and cars.owner_id is not null", [id]);
+              });
+            } else {
+              query.whereRaw("cars.dealer_id=? and cars.owner_id is not null", [id]);
+              isit = true
+            }
           }
-        }
-        if (carsState.outOfStock === "true") {
-          if (isit) {
-            query.orWhere(function () {
-              this.whereRaw(
+          if (carsState.owned === "true") {
+            if (isit) {
+              query.orWhere(function () {
+                this.whereRaw("cars.owner_id =?", [id]);
+              });
+            } else {
+              query.whereRaw("cars.owner_id =?", [id]);
+              isit = true;
+            }
+          }
+          if (carsState.inStock === "true") {
+            if (isit) {
+              query.orWhere(function () {
+                this.whereRaw("cars.owner_id is null");
+              });
+            } else {
+              query.whereRaw("cars.owner_id is null");
+              isit = true;
+            }
+          }
+          if (carsState.outOfStock === "true") {
+            if (isit) {
+              query.orWhere(function () {
+                this.whereRaw(
+                  "cars.dealer_id <> ? and cars.owner_id <> ? and cars.owner_id is not null",
+                  [id, id]
+                );
+              });
+            } else {
+              query.whereRaw(
                 "cars.dealer_id <> ? and cars.owner_id <> ? and cars.owner_id is not null",
                 [id, id]
               );
-            });
-          } else {
-            query.whereRaw(
-              "cars.dealer_id <> ? and cars.owner_id <> ? and cars.owner_id is not null",
-              [id, id]
-            );
+            }
           }
         }
       }
     }
-    console.log(query.toString());
 
     if (dealer === "Selling") {
       query = query.orderByRaw(
@@ -433,7 +462,6 @@ const func = async (
 
     return [end, cars];
   } catch (err) {
-    console.log(err);
     console.error(err);
     throw new Error("An error occurred while fetching the cars");
   }
@@ -491,7 +519,6 @@ const readAllGuest = (db) => async (req, res) => {
     return res.status(200).json(cars);
   } catch (err) {
     console.log(err);
-    console.log(err);
     res.status(400).json("something went wrong");
   }
 };
@@ -500,7 +527,7 @@ const make = (db) => async (req, res) => {
   try {
     const rows = await db("cars").select(db.raw("DISTINCT make"));
     if (!rows) {
-      console.log("err");
+      throw new Error('Something went wrong with selecting makes');
     }
     return res.json(rows);
   } catch (err) {
@@ -636,7 +663,6 @@ const update = (db) => async (req, res) => {
       return res.status(400).json({ error: "Update failed" });
     }
   } catch (err) {
-    console.log(err);
     console.error(err);
     res.status(500).json({ error: "An error occurred while updating the owner_id" });
   }
