@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon ./src/server.js",
     "devAuth": "nodemon ./src/authServer.js",
-    "start": "node ./src/server.js",
+    "startDev": "node ./src/server.js",
+    "startDevAuth": "node ./src/authServer.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier . --write"
   },

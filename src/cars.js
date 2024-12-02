@@ -38,22 +38,26 @@ const create = (db, cloudinary) => async (req, res) => {
   };
 
   let urls = [];
-  let images=[];
+  let images = [];
   if (req.files.length > 15) return res.status(400).json("To many images, the limit is 15");
   try {
     const promises = req.files.map(file => {
-      return new Promise((reject, resolve) => {
+      return new Promise((resolve, reject) => {
         const uploadCloudinary = cloudinary.uploader.upload_stream({
           resource_type: 'image'
         }, (error, result) => {
           if (result) {
-            console.log('resolve')
             images.push(result)
+
             urls.push(result.secure_url)
+            console.log('resolve', result)
+
             resolve(result)
+
           } else {
             console.log('reject')
             if (error.errMessage === "Invalid resource type") {
+              console.log('i am an error')
               reject({
                 message: "Invalid resource type",
                 statusCode: 400,
@@ -63,35 +67,35 @@ const create = (db, cloudinary) => async (req, res) => {
             }
           }
         })
-        const bufferStream= new stream.PassThrough();
+        const bufferStream = new stream.PassThrough();
         bufferStream.end(file.buffer);
         bufferStream.pipe(uploadCloudinary);
       })
     })
-
     await Promise.all(promises)
 
 
     // images[x] = await cloudinary.uploader.upload(req.files[x].path).secure_url;
-   
+
 
   } catch (err) {
     for (let x = 0; x < images.length; x++) {
       cloudinary.uploader.destroy(images[x].public_id);
     }
+
     console.log(err, "cloudinary");
-    if(err.message==="Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images."){
+    if (err.message === "Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images.") {
       return res.status(400).json('Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images.');
 
-    }else{
-      return res.status(400).json(err);
+    } else {
+      return res.status(400).json('error');
     }
-    
+
   }
   let errMessage = "";
   let status = null;
-  for (let x = 0; x < urls.length; x++) {
-    const response = await fetch(
+  const fetchAPI = async (x) => {
+    return await fetch(
       "https://api-inference.huggingface.co/models/facebook/detr-resnet-50",
       {
         headers: { Authorization: `Bearer ${process.env.IMAGEAPI}` },
@@ -100,6 +104,11 @@ const create = (db, cloudinary) => async (req, res) => {
         body: urls[x],
       }
     );
+  }
+  let counter = 0
+  for (let x = 0; x < urls.length; x++) {
+    const response = await fetchAPI(x)
+    console.log('response', response)
     if (response.ok) {
       const result = await response.json();
       const car = result.some((detection) => detection.label === "car" && detection.score > 0.9);
@@ -123,9 +132,9 @@ const create = (db, cloudinary) => async (req, res) => {
           for (let key of resultInterior) {
             const isItInterior = interiorCheck(key);
             isItInterior ? count++ : null;
-          }
-          if (count > 1) {
-            continue;
+            if (count > 1) {
+              continue;
+            }
           }
 
         } else {
@@ -135,7 +144,7 @@ const create = (db, cloudinary) => async (req, res) => {
 
           const errorText = await responseInterior.text();
           console.log(responseInterior.status, responseInterior.statusText, errorText, "here");
-          return res.status(responseInterior.status).json("Problems in the server");
+          return res.status(responseInterior.status).json("Problems in the server, please try again in a bit ...");
         }
 
         for (let y = 0; y <= x; y++) {
@@ -153,13 +162,22 @@ const create = (db, cloudinary) => async (req, res) => {
         console.log("images are related to cars");
       }
     } else {
+      if (counter++ < 1) {
+        await new Promise(resolve => setTimeout(() => resolve(), 2000))
+        continue;
+      }
       for (let y = 0; y <= x; y++) {
-        let ans = await cloudinary.uploader.destroy(images[y].public_id);
+        try {
+          let ans = await cloudinary.uploader.destroy(images[y].public_id);
+          console.log(`Image ${images[y].public_id} deletion result:`, ans.result);
+        } catch (error) {
+          console.error(`Error deleting image ${images[y].public_id}:`, error.message);
+        }
       }
 
       const errorText = await response.text();
       console.log(response.status, response.statusText, errorText, "here");
-      return res.status(response.status).json("Problems in the server");
+      return res.status(response.status).json("Problems in the server, please try again!");
     }
     if (errMessage) {
       return res.status(status).json(errMessage);
@@ -357,7 +375,7 @@ const func = async (
       .join("users", "cars.dealer_id", "users.id")
       .whereIn("make", vehicle || [])
       .whereIn("model", model || []);
-    if(carsState){
+    if (carsState) {
       const values = Object.values(carsState);
       const all = values.every((value) => value === false);
       const none = values.every((value) => value === true);
@@ -652,6 +670,14 @@ const update = (db) => async (req, res) => {
 
     if (!car) {
       return res.status(404).json({ error: "Car not found" });
+    }
+
+    if (car.owner_id) {
+      return res.status(409).json({
+        ownerId:car.owner_id,
+        message:
+          "This car is out of stock"
+      })
     }
 
     // Perform the update
