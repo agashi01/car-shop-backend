@@ -1,4 +1,4 @@
-const stream = require('stream')
+const stream = require("stream");
 
 const create = (db, cloudinary) => async (req, res) => {
   const { make, model, mileage, color, transmission, fuelType, vehicleType, dealer_id } = req.body;
@@ -29,9 +29,12 @@ const create = (db, cloudinary) => async (req, res) => {
     "seats",
   ];
   const interiorCheck = (key) => {
+    console.log(key);
     for (let x of interiorKeywords) {
       if (key.label.includes(x)) {
-        if (key.score > 0.08) return true;
+        if (key.score > 0.08) {
+          return true;
+        }
       }
     }
     return false;
@@ -41,74 +44,70 @@ const create = (db, cloudinary) => async (req, res) => {
   let images = [];
   if (req.files.length > 15) return res.status(400).json("To many images, the limit is 15");
   try {
-    const promises = req.files.map(file => {
+    const promises = req.files.map((file) => {
       return new Promise((resolve, reject) => {
-        const uploadCloudinary = cloudinary.uploader.upload_stream({
-          resource_type: 'image'
-        }, (error, result) => {
-          if (result) {
-            images.push(result)
+        const uploadCloudinary = cloudinary.uploader.upload_stream(
+          {
+            resource_type: "image",
+          },
+          (error, result) => {
+            if (result) {
+              images.push(result);
 
-            urls.push(result.secure_url)
-            console.log('resolve', result)
+              urls.push(result.secure_url);
 
-            resolve(result)
-
-          } else {
-            console.log('reject')
-            if (error.errMessage === "Invalid resource type") {
-              console.log('i am an error')
-              reject({
-                message: "Invalid resource type",
-                statusCode: 400,
-                error: "Invalid parameters"
-              })
-
+              resolve(result);
+            } else {
+              console.log("reject");
+              if (error.errMessage === "Invalid resource type") {
+                console.log("i am an error");
+                reject({
+                  message: "Invalid resource type",
+                  statusCode: 400,
+                  error: "Invalid parameters",
+                });
+              }
             }
           }
-        })
+        );
         const bufferStream = new stream.PassThrough();
         bufferStream.end(file.buffer);
         bufferStream.pipe(uploadCloudinary);
-      })
-    })
-    await Promise.all(promises)
-
+      });
+    });
+    await Promise.all(promises);
 
     // images[x] = await cloudinary.uploader.upload(req.files[x].path).secure_url;
-
-
   } catch (err) {
     for (let x = 0; x < images.length; x++) {
       cloudinary.uploader.destroy(images[x].public_id);
     }
 
     console.log(err, "cloudinary");
-    if (err.message === "Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images.") {
-      return res.status(400).json('Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images.');
-
+    if (
+      err.message === "Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images."
+    ) {
+      return res
+        .status(400)
+        .json("Only image files (JPEG, PNG, jpg) are allowed. Please upload valid images.");
     } else {
-      return res.status(400).json('error');
+      return res.status(400).json("error");
     }
-
   }
   let errMessage = "";
   let status = null;
   const fetchAPI = async (x) => {
-    return await fetch(
-      "https://api-inference.huggingface.co/models/facebook/detr-resnet-50",
-      {
-        headers: { Authorization: `Bearer ${process.env.IMAGEAPI}` },
-        method: "POST",
-        "content-type": "application/json",
-        body: urls[x],
-      }
-    );
-  }
-  let counter = 0
-  for (let x = 0; x < urls.length; x++) {
-    const response = await fetchAPI(x)
-    console.log('response', response)
+    return await fetch("https://api-inference.huggingface.co/models/facebook/detr-resnet-50", {
+      headers: { Authorization: `Bearer ${process.env.IMAGEAPI}` },
+      method: "POST",
+      "content-type": "application/json",
+      body: urls[x],
+    });
+  };
+  let counter = 0;
+ loop1: for (let x = 0; x < urls.length; x++) {
+    const response = await fetchAPI(x);
+    console.log("response", response);
     if (response.ok) {
       const result = await response.json();
       const car = result.some((detection) => detection.label === "car" && detection.score > 0.9);
@@ -129,14 +128,17 @@ const create = (db, cloudinary) => async (req, res) => {
         if (responseInterior.ok) {
           const resultInterior = await responseInterior.json();
           let count = 0;
-          for (let key of resultInterior) {
+          loop2 :for (let key of resultInterior) {
+            console.log(key, counter);
             const isItInterior = interiorCheck(key);
+            console.log(isItInterior);
             isItInterior ? count++ : null;
+            console.log(count);
+
             if (count > 1) {
-              continue;
+              continue loop1;
             }
           }
-
         } else {
           for (let y = 0; y <= x; y++) {
             await cloudinary.uploader.destroy(images[y].public_id);
@@ -144,7 +146,9 @@ const create = (db, cloudinary) => async (req, res) => {
 
           const errorText = await responseInterior.text();
           console.log(responseInterior.status, responseInterior.statusText, errorText, "here");
-          return res.status(responseInterior.status).json("Problems in the server, please try again in a bit ...");
+          return res
+            .status(responseInterior.status)
+            .json("Problems in the server, please try again in a bit ...");
         }
 
         for (let y = 0; y <= x; y++) {
@@ -163,7 +167,7 @@ const create = (db, cloudinary) => async (req, res) => {
       }
     } else {
       if (counter++ < 1) {
-        await new Promise(resolve => setTimeout(() => resolve(), 2000))
+        await new Promise((resolve) => setTimeout(() => resolve(), 2000));
         continue;
       }
       for (let y = 0; y <= x; y++) {
@@ -393,7 +397,7 @@ const func = async (
               });
             } else {
               query.whereRaw("cars.dealer_id=? and cars.owner_id is not null", [id]);
-              isit = true
+              isit = true;
             }
           }
           if (carsState.owned === "true") {
@@ -545,7 +549,7 @@ const make = (db) => async (req, res) => {
   try {
     const rows = await db("cars").select(db.raw("DISTINCT make"));
     if (!rows) {
-      throw new Error('Something went wrong with selecting makes');
+      throw new Error("Something went wrong with selecting makes");
     }
     return res.json(rows);
   } catch (err) {
@@ -676,9 +680,8 @@ const update = (db) => async (req, res) => {
       return res.status(409).json({
         ownerId: car.owner_id,
         id: car.id,
-        message:
-          "This car is out of stock"
-      })
+        message: "This car is out of stock",
+      });
     }
 
     // Perform the update
