@@ -674,7 +674,8 @@ const update = (db) => async (req, res) => {
 
     if (car.owner_id) {
       return res.status(409).json({
-        ownerId:car.owner_id,
+        ownerId: car.owner_id,
+        id: car.id,
         message:
           "This car is out of stock"
       })
