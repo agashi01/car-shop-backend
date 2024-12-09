@@ -1,5 +1,4 @@
 const runOnce = (db) => (req, res) => {
-  console.log('hi')
 
   const brand = ["Audi", "Bmw", "Mercedes-Benz"];
   const brandModel = {

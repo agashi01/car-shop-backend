@@ -29,7 +29,6 @@ const create = (db, cloudinary) => async (req, res) => {
     "seats",
   ];
   const interiorCheck = (key) => {
-    console.log(key);
     for (let x of interiorKeywords) {
       if (key.label.includes(x)) {
         if (key.score > 0.08) {
@@ -58,9 +57,7 @@ const create = (db, cloudinary) => async (req, res) => {
 
               resolve(result);
             } else {
-              console.log("reject");
               if (error.errMessage === "Invalid resource type") {
-                console.log("i am an error");
                 reject({
                   message: "Invalid resource type",
                   statusCode: 400,
@@ -107,7 +104,6 @@ const create = (db, cloudinary) => async (req, res) => {
   let counter = 0;
  loop1: for (let x = 0; x < urls.length; x++) {
     const response = await fetchAPI(x);
-    console.log("response", response);
     if (response.ok) {
       const result = await response.json();
       const car = result.some((detection) => detection.label === "car" && detection.score > 0.9);
@@ -129,11 +125,8 @@ const create = (db, cloudinary) => async (req, res) => {
           const resultInterior = await responseInterior.json();
           let count = 0;
           loop2 :for (let key of resultInterior) {
-            console.log(key, counter);
             const isItInterior = interiorCheck(key);
-            console.log(isItInterior);
             isItInterior ? count++ : null;
-            console.log(count);
 
             if (count > 1) {
               continue loop1;
@@ -163,7 +156,6 @@ const create = (db, cloudinary) => async (req, res) => {
           status = 400;
         }
       } else {
-        console.log("images are related to cars");
       }
     } else {
       if (counter++ < 1) {
@@ -173,7 +165,6 @@ const create = (db, cloudinary) => async (req, res) => {
       for (let y = 0; y <= x; y++) {
         try {
           let ans = await cloudinary.uploader.destroy(images[y].public_id);
-          console.log(`Image ${images[y].public_id} deletion result:`, ans.result);
         } catch (error) {
           console.error(`Error deleting image ${images[y].public_id}:`, error.message);
         }
@@ -673,7 +664,7 @@ const update = (db) => async (req, res) => {
     const car = await db("cars").select("*").where("id", carId).first();
 
     if (!car) {
-      return res.status(404).json({ error: "Car not found" });
+      return res.status(404).json({ id:car.id,error: "Car not found" });
     }
 
     if (car.owner_id) {

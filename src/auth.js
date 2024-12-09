@@ -124,7 +124,6 @@ const token = (db, jwt) => (req, res) => {
             name: user.name
           }
           const token = jwt.sign(header, process.env.JWT_SECRET, { expiresIn: '1h' })
-          console.log(token)
           return res.json(token)
         })
       }else{

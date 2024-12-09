@@ -53,7 +53,6 @@ const runOnce = (db) => (req, res) => {
         })
         .returning("*")
         .then((res) => {
-          console.log(res);
         });
       await trx.commit();
     } catch (err) {
