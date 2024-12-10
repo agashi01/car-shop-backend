@@ -2,25 +2,28 @@ const stream = require("stream");
 
 const create = (db, cloudinary) => async (req, res) => {
   const { make, model, mileage, color, transmission, fuelType, vehicleType, dealer_id } = req.body;
-    cloudinary.api.resources({ type: 'upload', resource_type: 'image', max_results: 500 },
-    (error, result) => {
-      if (!error) {
+  // const paths = await db('cars').select('paths')
+  // const publicIds = paths.map(path => {
+  //   const paths = path.paths[0]
+  //   const ids = paths.map(path => {
+  //     const fraction = path.split('/')
+  //     const public = fraction[fraction.length - 1]
+  //     const id = public.split('.')[0]
+  //     return id
+  //   })
+  //   return ids
+  // })
+  // const allPublicIds=publicIds.flat()
 
-        const publicIds = result.resources.map((resource) => resource.public_id);
-        if (publicIds.length > 0) {
-          const ids100=publicIds.slice(0,100)
-          cloudinary.api.delete_resources(ids100, (delErr, delResult) => {
-            if (delErr) return console.error('Error deleting images:', delErr);
-            console.log('Deleted images:', delResult);
-          });
-        } else {
-          console.log('No images to delete.');
-        }
-      } else {
-        console.error('Error fetching images:', error);
-      }
-  }); 
-  return res.json('success')
+  //   cloudinary.api.delete_resources(allPublicIds, (delErr, delResult) => {
+  //     if (delErr) {
+  //       console.error('Error deleting images:', delErr);
+  //       return res.status(500).json({ error: 'Error deleting images' });
+  //     } else {
+  //       console.log('Deleted images:', delResult);
+  //     }
+  //   });
+
   const interiorKeywords = [
     "cassette player",
     "tape player",
@@ -104,7 +107,7 @@ const create = (db, cloudinary) => async (req, res) => {
     });
   };
   let counter = 0;
- loop1: for (let x = 0; x < urls.length; x++) {
+  loop1: for (let x = 0; x < urls.length; x++) {
     const response = await fetchAPI(x);
     if (response.ok) {
       const result = await response.json();
@@ -126,7 +129,7 @@ const create = (db, cloudinary) => async (req, res) => {
         if (responseInterior.ok) {
           const resultInterior = await responseInterior.json();
           let count = 0;
-          loop2 :for (let key of resultInterior) {
+          loop2: for (let key of resultInterior) {
             const isItInterior = interiorCheck(key);
             isItInterior ? count++ : null;
 
@@ -666,7 +669,7 @@ const update = (db) => async (req, res) => {
     const car = await db("cars").select("*").where("id", carId).first();
 
     if (!car) {
-      return res.status(404).json({ id:car.id,error: "Car not found" });
+      return res.status(404).json({ id: car.id, error: "Car not found" });
     }
 
     if (car.owner_id) {
