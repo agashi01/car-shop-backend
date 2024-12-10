@@ -2,23 +2,25 @@ const stream = require("stream");
 
 const create = (db, cloudinary) => async (req, res) => {
   const { make, model, mileage, color, transmission, fuelType, vehicleType, dealer_id } = req.body;
-  //   cloudinary.api.resources({ type: 'upload', resource_type: 'image', max_results: 500 },
-  //   (error, result) => {
-  //     if (!error) {y
+    cloudinary.api.resources({ type: 'upload', resource_type: 'image', max_results: 500 },
+    (error, result) => {
+      if (!error) {
 
-  //       const publicIds = result.resources.map((resource) => resource.public_id);
-  //       if (publicIds.length > 0) {
-  //         cloudinary.api.delete_resources(publicIds, (delErr, delResult) => {
-  //           if (delErr) return console.error('Error deleting images:', delErr);
-  //           console.log('Deleted images:', delResult);
-  //         });
-  //       } else {x
-  //         console.log('No images to delete.');
-  //       }
-  //     } else {
-  //       console.error('Error fetching images:', error);
-  //     }
-  // });
+        const publicIds = result.resources.map((resource) => resource.public_id);
+        if (publicIds.length > 0) {
+          const ids100=publicIds.slice(0,100)
+          cloudinary.api.delete_resources(ids100, (delErr, delResult) => {
+            if (delErr) return console.error('Error deleting images:', delErr);
+            console.log('Deleted images:', delResult);
+          });
+        } else {
+          console.log('No images to delete.');
+        }
+      } else {
+        console.error('Error fetching images:', error);
+      }
+  }); 
+  return res.json('success')
   const interiorKeywords = [
     "cassette player",
     "tape player",
