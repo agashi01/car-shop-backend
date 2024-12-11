@@ -34,4 +34,6 @@ app2.use(cookieParser());
 
 app(app2, jwt, auth, cookieParser, db);
 
-app2.listen(4000, () => console.log("server is listening in port 4000"));
+const PORT= process.env.PORT||4000
+
+app2.listen(PORT, () => console.log(`server is listening in port ${PORT}`));
