@@ -7,14 +7,17 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { app } = require("./appAuth.js");
 const app2 = express();
+
 const db = knex({
   client: "pg",
   connection: {
-    host: "localhost",
-    user: "postgres",
-    password: process.env.PASSWORD,
-    database: process.env.DATABASE,
-  },
+      host: process.env.PG_HOST,
+      port:process.env.PG_PORT,
+      user: process.env.PG_USERNAME,
+      password: process.env.PG_PASSWORD,
+      database: process.env.PG_DATABASE,
+      ssl:true
+  }
 });
 const corsOptions = {
   origin: "http://localhost:5173",

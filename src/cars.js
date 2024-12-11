@@ -3,6 +3,7 @@ const stream = require("stream");
 const create = (db, cloudinary) => async (req, res) => {
   const { make, model, mileage, color, transmission, fuelType, vehicleType, dealer_id } = req.body;
   // const paths = await db('cars').select('paths')
+  // console.log(paths)
   // const publicIds = paths.map(path => {
   //   const paths = path.paths[0]
   //   const ids = paths.map(path => {
@@ -14,7 +15,6 @@ const create = (db, cloudinary) => async (req, res) => {
   //   return ids
   // })
   // const allPublicIds=publicIds.flat()
-
   //   cloudinary.api.delete_resources(allPublicIds, (delErr, delResult) => {
   //     if (delErr) {
   //       console.error('Error deleting images:', delErr);
@@ -694,11 +694,30 @@ const update = (db) => async (req, res) => {
   }
 };
 
-const delet = (db) => (req, res) => {
+const delet = (cloudinary, db) => async (req, res) => {
   const { id } = req.query;
   if (!id) {
     return res.status(403).json("id is missing");
   }
+
+  const paths = await db("cars").select("paths").where({ id });
+
+  const ids = paths[0].paths[0].map((path) => {
+    console.log(path);
+    const fraction = path.split("/");
+    const public = fraction[fraction.length - 1];
+    const id = public.split(".")[0];
+    return id;
+  });
+
+  cloudinary.api.delete_resources(ids, (delErr, delResult) => {
+    if (delErr) {
+      console.error("Error deleting images:", delErr);
+      return res.status(500).json({ error: "Error deleting images" });
+    } else {
+      console.log("Deleted images:", delResult);
+    }
+  });
 
   db("cars")
     .where({

@@ -63,7 +63,7 @@ const makeApp = (express, app, multer, cloudinary, db, authenticate) => {
   app.get("/cars", (req, res) => cars.readAll(db)(req, res));
   app.get("/cars/:id", (req, res) => cars.readCar(db)(req, res));
   app.put("/cars", (req, res) => cars.updateCar(db)(req, res));
-  app.delete("/cars", (req, res) => cars.deleteCar(db)(req, res));
+  app.delete("/cars", (req, res) => cars.deleteCar(cloudinary,db)(req, res));
   app.post("/dealers", (req, res) => dealers.createDealer(db)(req, res));
   app.get("/dealers", (req, res) => dealers.readAll(db)(req, res));
   app.get("/dealers/:id", (req, res) => dealers.readDealer(db)(req, res));
