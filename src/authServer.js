@@ -11,12 +11,12 @@ const app2 = express();
 const db = knex({
   client: "pg",
   connection: {
-      host: process.env.PG_HOST,
-      port:process.env.PG_PORT,
-      user: process.env.PG_USERNAME,
-      password: process.env.PG_PASSWORD,
-      database: process.env.PG_DATABASE,
-      ssl:true
+    host: process.env.PG_HOST,
+    port: process.env.PG_PORT,
+    user: process.env.PG_USERNAME,
+    password: process.env.PG_PASSWORD,
+    database: process.env.PG_DATABASE,
+    ssl: { rejectUnauthorized: true }
   }
 });
 const corsOptions = {
@@ -34,6 +34,6 @@ app2.use(cookieParser());
 
 app(app2, jwt, auth, cookieParser, db);
 
-const PORT= process.env.PORT||4000
+const PORT = process.env.PORT || 4000
 
 app2.listen(PORT, () => console.log(`server is listening in port ${PORT}`));
