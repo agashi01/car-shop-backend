@@ -99,7 +99,7 @@ const create = (db, cloudinary) => async (req, res) => {
   let errMessage = "";
   let status = null;
   const fetchAPI = async (x) => {
-    return await fetch("https://router.huggingface.co/hf-inference/models/facebook/detr-resnet-50", {
+    return await fetch("https://router.huggingface.co/hf-inference/models/microsoft/resnet-50", {
       headers: { Authorization: `Bearer ${process.env.IMAGEAPI}` },
       method: "POST",
       "content-type": "application/json",
