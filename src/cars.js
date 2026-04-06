@@ -57,7 +57,7 @@ const create = (db, cloudinary) => async (req, res) => {
           (error, result) => {
             if (result) {
               images.push(result);
-
+              console.log("result2", result)
               urls.push(result.secure_url);
 
               resolve(result);
