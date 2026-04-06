@@ -102,8 +102,9 @@ const create = (db, cloudinary) => async (req, res) => {
     return await fetch("https://router.huggingface.co/hf-inference/models/microsoft/resnet-50", {
       headers: { Authorization: `Bearer ${process.env.IMAGEAPI}`, "content-type": "application/json" },
       method: "POST",
-
-      body: urls[x],
+      body: {
+        inputs: urls[x]
+      }
     });
   };
   let counter = 0;
@@ -111,8 +112,8 @@ const create = (db, cloudinary) => async (req, res) => {
     const response = await fetchAPI(x);
     if (response.ok) {
       const result = await response.json();
-      const car = result.some((detection) => detection.label === "car" && detection.score > 0.9);
-      const clear = result.some((detection) => detection.label === "car" && detection.score > 0.5);
+      const car = result.some((detection) => detection.label.includes("car") && detection.score > 0.8);
+      const clear = result.some((detection) => detection.label.includes("car") && detection.score > 0.5);
 
       if (!car) {
         const responseInterior = await fetch(
@@ -123,7 +124,9 @@ const create = (db, cloudinary) => async (req, res) => {
               Authorization: `Bearer ${process.env.IMAGEAPI}`,
               "Content-Type": "application/json",
             },
-            body: urls[x],
+            body: {
+              inputs: urls[x]
+            }
           }
         );
         if (responseInterior.ok) {
