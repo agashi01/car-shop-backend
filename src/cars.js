@@ -46,7 +46,7 @@ const create = (db, cloudinary) => async (req, res) => {
 
   let urls = [];
   let images = [];
-  if (req.files.length > 15) return res.status(400).json("To many images, the limit is 15");
+  if (req.files.length > 15) return res.status(400).json("Too many images, the limit is 15");
   try {
     const promises = req.files.map((file) => {
       return new Promise((resolve, reject) => {
@@ -99,7 +99,7 @@ const create = (db, cloudinary) => async (req, res) => {
   let errMessage = "";
   let status = null;
   const fetchAPI = async (x) => {
-    return await fetch("https://api-inference.huggingface.co/models/facebook/detr-resnet-50", {
+    return await fetch("https://router.huggingface.co/hf-inference/models/facebook/detr-resnet-50", {
       headers: { Authorization: `Bearer ${process.env.IMAGEAPI}` },
       method: "POST",
       "content-type": "application/json",
@@ -116,7 +116,7 @@ const create = (db, cloudinary) => async (req, res) => {
 
       if (!car) {
         const responseInterior = await fetch(
-          "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
+          "https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224",
           {
             method: "POST",
             headers: {
