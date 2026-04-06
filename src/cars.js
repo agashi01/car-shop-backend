@@ -100,9 +100,9 @@ const create = (db, cloudinary) => async (req, res) => {
   let status = null;
   const fetchAPI = async (x) => {
     return await fetch("https://router.huggingface.co/hf-inference/models/microsoft/resnet-50", {
-      headers: { Authorization: `Bearer ${process.env.IMAGEAPI}` },
+      headers: { Authorization: `Bearer ${process.env.IMAGEAPI}`, "content-type": "application/json" },
       method: "POST",
-      "content-type": "application/json",
+
       body: urls[x],
     });
   };
